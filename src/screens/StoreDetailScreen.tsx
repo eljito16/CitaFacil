@@ -3,11 +3,10 @@ import {
   Text,
   StyleSheet,
   Image,
-  FlatList,
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { StoreType } from "../types/Store";
 
 type RouteParams = {
@@ -18,7 +17,13 @@ type RouteParams = {
 
 export default function StoreDetailScreen() {
   const route = useRoute<RouteProp<RouteParams, "StoreDetail">>();
+  const navigation = useNavigation();
+
   const { store } = route.params;
+
+  const handleReserve = () => {
+    navigation.navigate("Booking" as never);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -30,7 +35,7 @@ export default function StoreDetailScreen() {
       <Text style={styles.rating}>⭐ {store.rating}</Text>
       <Text style={styles.description}>{store.description}</Text>
 
-      {/* Datos */}
+      {/* Información */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Información</Text>
         <Text>📍 {store.address}</Text>
@@ -53,7 +58,7 @@ export default function StoreDetailScreen() {
       </View>
 
       {/* Botón reservar */}
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleReserve}>
         <Text style={styles.buttonText}>Reservar cita</Text>
       </TouchableOpacity>
     </ScrollView>

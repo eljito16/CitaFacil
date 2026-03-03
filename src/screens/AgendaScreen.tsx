@@ -1,31 +1,18 @@
 import { View, Text, StyleSheet, FlatList } from "react-native";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-
-type AppointmentType = {
-  id: string;
-  clientName: string;
-  service: string;
-  date: string;
-};
-
-const mockAppointments: AppointmentType[] = [
-  {
-    id: "1",
-    clientName: "Juan Pérez",
-    service: "Corte clásico",
-    date: "20 Feb - 3:00 PM",
-  },
-  {
-    id: "2",
-    clientName: "Carlos López",
-    service: "Barba",
-    date: "21 Feb - 5:00 PM",
-  },
-];
+import { AppointmentContext } from "../context/AppointmentContext";
 
 export default function AgendaScreen() {
   const { user } = useContext(AuthContext);
+
+  const appointmentContext = useContext(AppointmentContext);
+
+  if (!appointmentContext) {
+    throw new Error("AgendaScreen must be used inside AppointmentProvider");
+  }
+
+  const { appointments } = appointmentContext;
 
   return (
     <View style={styles.container}>
@@ -34,12 +21,16 @@ export default function AgendaScreen() {
           <Text style={styles.title}>Mis Citas</Text>
 
           <FlatList
-            data={mockAppointments}
+            data={appointments}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <Text style={styles.bold}>Servicio: {item.service}</Text>
+                <Text style={styles.bold}>
+                  Servicio: {item.service}
+                </Text>
                 <Text>Fecha: {item.date}</Text>
+                <Text>Hora: {item.time}</Text>
+                <Text>Negocio: {item.store}</Text>
               </View>
             )}
           />
@@ -49,15 +40,16 @@ export default function AgendaScreen() {
           <Text style={styles.title}>Citas del Negocio</Text>
 
           <FlatList
-            data={mockAppointments}
+            data={appointments}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <Text style={styles.bold}>
-                  Cliente: {item.clientName}
+                  Servicio: {item.service}
                 </Text>
-                <Text>Servicio: {item.service}</Text>
                 <Text>Fecha: {item.date}</Text>
+                <Text>Hora: {item.time}</Text>
+                <Text>Negocio: {item.store}</Text>
               </View>
             )}
           />
@@ -66,7 +58,6 @@ export default function AgendaScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
