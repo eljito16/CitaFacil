@@ -1,28 +1,24 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import {  View,  Text,  StyleSheet,  Image,  TouchableOpacity,  ScrollView,} from "react-native";
+import {  RouteProp,  useRoute,  useNavigation,  NavigationProp,} from "@react-navigation/native";
 import { StoreType } from "../types/Store";
 
-type RouteParams = {
-  StoreDetail: {
-    store: StoreType;
-  };
+type RootStackParamList = {
+  StoreDetail: { store: StoreType };
+  Booking: { storeName: string };
 };
 
+type RouteParams = RouteProp<RootStackParamList, "StoreDetail">;
+
 export default function StoreDetailScreen() {
-  const route = useRoute<RouteProp<RouteParams, "StoreDetail">>();
-  const navigation = useNavigation();
+  const route = useRoute<RouteParams>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const { store } = route.params;
 
   const handleReserve = () => {
-    navigation.navigate("Booking" as never);
+    navigation.navigate("Booking", {
+      storeName: store.name,
+    });
   };
 
   return (

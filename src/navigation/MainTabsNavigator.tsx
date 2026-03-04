@@ -2,8 +2,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeStackNavigator from "./HomeStackNavigator";
-import AccountScreen from "../screens/AccountScreen";
-import AgendaScreen from "../screens/AgendaScreen";
+import AccountScreen from "../screens/AccountScreenCliente";
+import AgendaScreen from "../screens/AgendaScreenNegocio";
 
 export type MainTabParamList = {
   Home: undefined;

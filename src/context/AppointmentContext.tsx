@@ -2,9 +2,14 @@ import React, { createContext, useState, ReactNode } from "react";
 
 export type Appointment = {
   id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  address: string;
   service: string;
   date: string;
   time: string;
+  paymentMethod: "efectivo" | "transferencia";
   store: string;
 };
 
@@ -13,7 +18,8 @@ type AppointmentContextType = {
   addAppointment: (appointment: Appointment) => void;
 };
 
-export const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
+export const AppointmentContext =
+  createContext<AppointmentContextType | undefined>(undefined);
 
 type Props = {
   children: ReactNode;
