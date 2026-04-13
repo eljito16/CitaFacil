@@ -3,7 +3,7 @@ import {
   createAppointment,
   getClientAppointments,
   getBusinessAppointments,
-  cancelAppointment,
+  cancelAppointment,getReservedHours,
 } from "../controllers/appointmentController";
 import { verifyToken, verifyRole } from "../middlewares/authMiddleware";
 
@@ -13,6 +13,7 @@ const router = Router();
 router.post("/", verifyToken, verifyRole("cliente"), createAppointment);
 router.get("/client", verifyToken, verifyRole("cliente"), getClientAppointments);
 router.put("/cancel/:id", verifyToken, verifyRole("cliente"), cancelAppointment);
+router.get("/available/:business_id/:date", getReservedHours);
 
 // Rutas protegidas para negocio
 router.get("/business", verifyToken, verifyRole("negocio"), getBusinessAppointments);

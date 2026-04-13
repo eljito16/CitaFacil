@@ -41,6 +41,28 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
   }
 };
 
+// Obtener horas reservadas por negocio y fecha
+export const getReservedHours = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { business_id, date } = req.params;
+
+    const result = await pool.query(
+      `SELECT time FROM appointments 
+       WHERE business_id = $1 AND date = $2 AND status != 'cancelada'`,
+      [business_id, date]
+    );
+
+    const reservedHours = result.rows.map((row) =>
+      row.time.substring(0, 5)
+    );
+
+    res.status(200).json({ reservedHours });
+
+  } catch (error) {
+    res.status(500).json({ message: "Error interno del servidor", error });
+  }
+};
+
 // Obtener citas del cliente
 export const getClientAppointments = async (req: Request, res: Response): Promise<void> => {
   try {

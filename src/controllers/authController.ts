@@ -136,4 +136,28 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
   } catch (error) {
     res.status(500).json({ message: "Error interno del servidor", error });
   }
+  
+};
+
+// Actualizar perfil
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+    const { full_name, phone, address } = req.body;
+
+    const updatedUser = await pool.query(
+      `UPDATE users SET full_name=$1, phone=$2, address=$3
+       WHERE id=$4
+       RETURNING id, username, role, full_name, phone, address`,
+      [full_name, phone, address, userId]
+    );
+
+    res.status(200).json({
+      message: "Perfil actualizado correctamente",
+      user: updatedUser.rows[0],
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Error interno del servidor", error });
+  }
 };

@@ -24,7 +24,7 @@ app.use("/api/appointments", appointmentRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {
-  res.json({ message: "CitaPro API funcionando correctamente 🚀" });
+  res.json({ message: "CitaPro API funcionando correctamente " });
 });
 
 // Servidor
