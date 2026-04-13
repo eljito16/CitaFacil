@@ -7,7 +7,7 @@ import { StoreType } from "../types/Store";
 export type HomeStackParamList = {
   HomeScreen: undefined;
   StoreDetail: { store: StoreType };
-  Booking: undefined;
+  Booking: { storeName: string; storeId: string };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();

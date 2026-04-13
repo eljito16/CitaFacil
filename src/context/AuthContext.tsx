@@ -1,20 +1,26 @@
 import { createContext, useState, ReactNode } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api, setAuthToken, removeAuthToken } from "../services/api";
 
 type Role = "cliente" | "negocio";
 
 type User = {
+  id: string;
   username: string;
-  password: string;
   role: Role;
+  full_name?: string;
+  phone?: string;
+  address?: string;
   businessName?: string;
   description?: string;
 };
 
 type AuthContextType = {
   user: User | null;
-  login: (username: string, password: string) => void;
-  register: (username: string, password: string, role: Role) => void;
-  logout: () => void;
+  token: string | null;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string, role: Role) => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>(
@@ -23,32 +29,61 @@ export const AuthContext = createContext<AuthContextType>(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [token, setToken] = useState<string | null>(null);
 
-  const login = (username: string, password: string) => {
-    const foundUser = users.find(
-      (u) => u.username === username && u.password === password
-    );
+  const login = async (username: string, password: string) => {
+    try {
+      const response = await api.post("/auth/login", { username, password });
 
-    if (foundUser) {
-      setUser(foundUser);
-    } else {
-      alert("Usuario y/o Contraseña incorrectos");
+      const { user, token } = response.data;
+
+      setUser(user);
+      setToken(token);
+      setAuthToken(token);
+
+      await AsyncStorage.setItem("token", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Error al iniciar sesión";
+      alert(message);
     }
   };
 
-  const register = (username: string, password: string, role: Role) => {
-    const newUser = { username, password, role };
-    setUsers([...users, newUser]);
-    setUser(newUser);
+  const register = async (username: string, password: string, role: Role) => {
+    try {
+      const response = await api.post("/auth/register", {
+        username,
+        password,
+        role,
+      });
+
+      const { user, token } = response.data;
+
+      setUser(user);
+      setToken(token);
+      setAuthToken(token);
+
+      await AsyncStorage.setItem("token", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Error al registrarse";
+      alert(message);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
+    setToken(null);
+    removeAuthToken();
+
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

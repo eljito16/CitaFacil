@@ -1,61 +1,53 @@
 import {  View,  Text,  Button,  StyleSheet,  TextInput,  ScrollView,  TouchableOpacity,  Alert,} from "react-native";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { UserContext } from "../context/UserContext";
+import { api } from "../services/api";
 
 export default function AccountScreen() {
-  const { logout } = useContext(AuthContext);
-
-  const userContext = useContext(UserContext);
-  if (!userContext) {
-    throw new Error("AccountScreen must be used inside UserProvider");
-  }
-
-  const { user, saveUser, updateUser } = userContext;
+  const { logout, user } = useContext(AuthContext);
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [photo, setPhoto] = useState("");
 
   useEffect(() => {
     if (user) {
-      setFullName(user.fullName);
-      setPhone(user.phone);
-      setAddress(user.address);
-      setPhoto(user.photo);
+      setFullName(user.full_name || "");
+      setPhone(user.phone || "");
+      setAddress(user.address || "");
     }
   }, [user]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!fullName || !phone || !address) {
       Alert.alert("Error", "Debes completar todos los campos obligatorios");
       return;
     }
 
-    if (!user) {
-      saveUser({
-        id: Date.now().toString(),
-        fullName,
+    try {
+      await api.put("/auth/profile", {
+        full_name: fullName,
         phone,
         address,
-        photo,
       });
-      Alert.alert("Éxito", "Perfil creado correctamente");
-    } else {
-      updateUser({
-        fullName,
-        phone,
-        address,
-        photo,
-      });
+
       Alert.alert("Éxito", "Perfil actualizado correctamente");
+
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Error al actualizar perfil";
+      Alert.alert("Error", message);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Mi Perfil</Text>
+
+      <Text style={styles.label}>Usuario</Text>
+      <Text style={styles.username}>{user?.username}</Text>
+
+      <Text style={styles.label}>Rol</Text>
+      <Text style={styles.username}>{user?.role}</Text>
 
       <Text style={styles.label}>Nombre Completo *</Text>
       <TextInput
@@ -82,18 +74,8 @@ export default function AccountScreen() {
         placeholder="Ej: Calle 123 #45-67"
       />
 
-      <Text style={styles.label}>Foto (URL opcional)</Text>
-      <TextInput
-        style={styles.input}
-        value={photo}
-        onChangeText={setPhoto}
-        placeholder="https://..."
-      />
-
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>
-          {user ? "Actualizar Perfil" : "Guardar Perfil"}
-        </Text>
+        <Text style={styles.saveButtonText}>Actualizar Perfil</Text>
       </TouchableOpacity>
 
       <View style={{ marginTop: 30 }}>
@@ -116,6 +98,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 15,
     marginBottom: 5,
+  },
+  username: {
+    fontSize: 16,
+    color: "#555",
   },
   input: {
     borderWidth: 1,

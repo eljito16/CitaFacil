@@ -1,54 +1,65 @@
-import {  View,Text,StyleSheet,TextInput, FlatList, TouchableOpacity,} from "react-native";
-import { useState, useContext } from "react";
-import { StoreType } from "../types/Store";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
+import { useState, useContext, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
-import { Image } from "react-native";
+import { api } from "../services/api";
 
-const mockStores: StoreType[] = [
-  {
-    id: "1",
-    name: "Barbería El Maestro",
-    category: "barberia",
-    description: "Cortes clásicos y modernos para caballeros.",
-    address: "Calle 123 #45-67",
-    phone: "3001234567",
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033",
-    schedule: "Lunes a Sábado 9:00 AM - 7:00 PM",
-    services: [
-      { id: "1", name: "Corte clásico", price: 25000 },
-      { id: "2", name: "Corte + Barba", price: 35000 },
-      { id: "3", name: "Diseño personalizado", price: 40000 },
-    ],
-  },
-  {
-    id: "2",
-    name: "Studio Glam Nails",
-    category: "nails",
-    description: "Arte en uñas y spa relajante.",
-    address: "Carrera 10 #20-30",
-    phone: "3019876543",
-    rating: 4.6,
-    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371",
-    schedule: "Lunes a Domingo 10:00 AM - 8:00 PM",
-    services: [
-      { id: "4", name: "Manicure", price: 20000 },
-      { id: "5", name: "Pedicure", price: 22000 },
-      { id: "6", name: "Uñas acrílicas", price: 60000 },
-    ],
-  },
-];
+type ServiceType = {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+};
+
+type StoreType = {
+  id: string;
+  name: string;
+  category: "barberia" | "nails";
+  description: string;
+  address: string;
+  phone: string;
+  rating: number;
+  image: string;
+  schedule: string;
+  services: ServiceType[];
+};
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useContext(AuthContext);
 
+  const [stores, setStores] = useState<StoreType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "barberia" | "nails">("all");
 
-  const filteredStores = mockStores.filter((store) => {
+  useEffect(() => {
+    fetchStores();
+  }, []);
+
+  const fetchStores = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/businesses");
+      setStores(response.data.businesses);
+    } catch (error) {
+      console.error("Error cargando tiendas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredStores = stores.filter((store) => {
     const matchesSearch = store.name
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -75,44 +86,62 @@ export default function HomeScreen() {
           <View style={styles.filterContainer}>
             <TouchableOpacity
               onPress={() => setFilter("barberia")}
-              style={styles.filterButton}
+              style={[
+                styles.filterButton,
+                filter === "barberia" && styles.filterSelected,
+              ]}
             >
               <Text>Barbería</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setFilter("nails")}
-              style={styles.filterButton}
+              style={[
+                styles.filterButton,
+                filter === "nails" && styles.filterSelected,
+              ]}
             >
               <Text>Uñas</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setFilter("all")}
-              style={styles.filterButton}
+              style={[
+                styles.filterButton,
+                filter === "all" && styles.filterSelected,
+              ]}
             >
               <Text>Todos</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Lista */}
-          <FlatList
-            data={filteredStores}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() =>
-                  navigation.navigate("StoreDetail", { store: item })
-                }
-              >
-                <Image source={{ uri: item.image }} style={styles.image} />
-                <Text style={styles.title}>{item.name}</Text>
-                <Text>⭐ {item.rating}</Text>
-                <Text>{item.address}</Text>
-              </TouchableOpacity>
-            )}
-          />
+          {/* Loading */}
+          {loading ? (
+            <ActivityIndicator size="large" color="black" style={{ marginTop: 30 }} />
+          ) : filteredStores.length === 0 ? (
+            <Text style={styles.emptyText}>No hay tiendas disponibles</Text>
+          ) : (
+            /* Lista */
+            <FlatList
+              data={filteredStores}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.card}
+                  onPress={() =>
+                    navigation.navigate("StoreDetail", { store: item })
+                  }
+                >
+                  {item.image ? (
+                    <Image source={{ uri: item.image }} style={styles.image} />
+                  ) : null}
+                  <Text style={styles.title}>{item.name}</Text>
+                  <Text>⭐ {item.rating}</Text>
+                  <Text>{item.address}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </>
       ) : (
         <>
@@ -168,6 +197,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
   },
+  filterSelected: {
+    backgroundColor: "#ddd",
+  },
   card: {
     padding: 15,
     borderWidth: 1,
@@ -186,9 +218,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   image: {
-  width: "100%",
-  height: 150,
-  borderRadius: 8,
-  marginBottom: 10,
-},
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  emptyText: {
+    textAlign: "center",
+    marginTop: 30,
+    fontSize: 16,
+    color: "#888",
+  },
 });

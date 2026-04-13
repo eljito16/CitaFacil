@@ -1,34 +1,74 @@
-import {  View,  Text,  StyleSheet,  Image,  TouchableOpacity,  ScrollView,} from "react-native";
-import {  RouteProp,  useRoute,  useNavigation,  NavigationProp,} from "@react-navigation/native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
+import {
+  RouteProp,
+  useRoute,
+  useNavigation,
+  NavigationProp,
+} from "@react-navigation/native";
+import { useEffect, useState } from "react";
 import { StoreType } from "../types/Store";
+import { api } from "../services/api";
+import { HomeStackParamList } from "../navigation/HomeStackNavigator";
 
-type RootStackParamList = {
-  StoreDetail: { store: StoreType };
-  Booking: { storeName: string };
+type RouteParams = RouteProp<HomeStackParamList, "StoreDetail">;
+
+type ServiceType = {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
 };
-
-type RouteParams = RouteProp<RootStackParamList, "StoreDetail">;
 
 export default function StoreDetailScreen() {
   const route = useRoute<RouteParams>();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NavigationProp<HomeStackParamList>>();
 
   const { store } = route.params;
 
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/services/${store.id}`);
+      setServices(response.data.services);
+    } catch (error) {
+      console.error("Error cargando servicios:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReserve = () => {
     navigation.navigate("Booking", {
-      storeName: store.name,
-    });
-  };
+    storeName: store.name,
+    storeId: store.id,
+  });
+};
 
   return (
     <ScrollView style={styles.container}>
       {/* Imagen */}
-      <Image source={{ uri: store.image }} style={styles.image} />
+      {store.image ? (
+        <Image source={{ uri: store.image }} style={styles.image} />
+      ) : null}
 
       {/* Información principal */}
       <Text style={styles.title}>{store.name}</Text>
-      <Text style={styles.rating}>⭐ {store.rating}</Text>
+      <Text style={styles.rating}>⭐ {store.rating || "Sin calificación"}</Text>
       <Text style={styles.description}>{store.description}</Text>
 
       {/* Información */}
@@ -43,14 +83,25 @@ export default function StoreDetailScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Servicios</Text>
 
-        {store.services.map((service) => (
-          <View key={service.id} style={styles.serviceCard}>
-            <Text style={styles.serviceName}>{service.name}</Text>
-            <Text style={styles.servicePrice}>
-              ${service.price.toLocaleString()}
-            </Text>
-          </View>
-        ))}
+        {loading ? (
+          <ActivityIndicator size="small" color="black" />
+        ) : services.length === 0 ? (
+          <Text style={styles.emptyText}>No hay servicios disponibles</Text>
+        ) : (
+          services.map((service) => (
+            <View key={service.id} style={styles.serviceCard}>
+              <Text style={styles.serviceName}>{service.name}</Text>
+              <View>
+                <Text style={styles.servicePrice}>
+                  ${Number(service.price).toLocaleString()}
+                </Text>
+                <Text style={styles.serviceDuration}>
+                  ⏱ {service.duration} min
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </View>
 
       {/* Botón reservar */}
@@ -103,6 +154,16 @@ const styles = StyleSheet.create({
   },
   servicePrice: {
     fontWeight: "bold",
+    textAlign: "right",
+  },
+  serviceDuration: {
+    fontSize: 12,
+    color: "#888",
+    textAlign: "right",
+  },
+  emptyText: {
+    color: "#888",
+    fontStyle: "italic",
   },
   button: {
     backgroundColor: "black",
