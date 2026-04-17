@@ -1,9 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 import HomeStackNavigator from "./HomeStackNavigator";
-import AccountScreen from "../screens/AccountScreenCliente";
-import AgendaScreen from "../screens/AgendaScreenNegocio";
+import AccountScreenCliente from "../screens/AccountScreenCliente";
+import AgendaScreenNegocio from "../screens/AgendaScreenNegocio";
+import BusinessProfileScreen from "../screens/BusinessProfileScreen";
 
 export type MainTabParamList = {
   Home: undefined;
@@ -14,6 +17,8 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabsNavigator() {
+  const { user } = useContext(AuthContext);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -42,11 +47,11 @@ export default function MainTabsNavigator() {
       />
       <Tab.Screen
         name="Agenda"
-        component={AgendaScreen}
+        component={AgendaScreenNegocio}
       />
       <Tab.Screen
         name="Account"
-        component={AccountScreen}
+        component={user?.role === "negocio" ? BusinessProfileScreen : AccountScreenCliente}
       />
     </Tab.Navigator>
   );
