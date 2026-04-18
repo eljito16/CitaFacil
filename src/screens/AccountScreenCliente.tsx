@@ -1,14 +1,19 @@
-import {  View,  Text,  Button,  StyleSheet,  TextInput,  ScrollView,  TouchableOpacity,  Alert,} from "react-native";
-import { useContext, useState, useEffect } from "react";
-import { AuthContext } from "../context/AuthContext";
+import {
+  View, Text, StyleSheet, TextInput,
+  ScrollView, TouchableOpacity, Alert,
+} from "react-native";
+import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/UseAuth";
 import { api } from "../services/api";
+import { colors } from "../styles/colors";
+import { typography } from "../styles/typography";
 
 export default function AccountScreen() {
-  const { logout, user } = useContext(AuthContext);
+  const { logout, user } = useAuth();
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [phone, setPhone]       = useState("");
+  const [address, setAddress]   = useState("");
 
   useEffect(() => {
     if (user) {
@@ -23,33 +28,48 @@ export default function AccountScreen() {
       Alert.alert("Error", "Debes completar todos los campos obligatorios");
       return;
     }
-
     try {
-      await api.put("/auth/profile", {
-        full_name: fullName,
-        phone,
-        address,
-      });
-
+      await api.put("/auth/profile", { full_name: fullName, phone, address });
       Alert.alert("Éxito", "Perfil actualizado correctamente");
-
     } catch (error: any) {
       const message = error.response?.data?.message || "Error al actualizar perfil";
       Alert.alert("Error", message);
     }
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Eliminar cuenta",
+      "¿Estás seguro? Esta acción eliminará tu cuenta y todas tus citas permanentemente. No se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, eliminar cuenta",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete("/auth/account");
+              logout();
+            } catch (error: any) {
+              Alert.alert("Error", error.response?.data?.message || "No se pudo eliminar la cuenta");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Mi Perfil</Text>
+      <Text style={typography.screenTitle}>Mi Perfil</Text>
 
-      <Text style={styles.label}>Usuario</Text>
-      <Text style={styles.username}>{user?.username}</Text>
+      <Text style={typography.label}>Usuario</Text>
+      <Text style={styles.infoText}>{user?.username}</Text>
 
-      <Text style={styles.label}>Rol</Text>
-      <Text style={styles.username}>{user?.role}</Text>
+      <Text style={typography.label}>Rol</Text>
+      <Text style={styles.infoText}>{user?.role}</Text>
 
-      <Text style={styles.label}>Nombre Completo *</Text>
+      <Text style={typography.label}>Nombre Completo *</Text>
       <TextInput
         style={styles.input}
         value={fullName}
@@ -57,7 +77,7 @@ export default function AccountScreen() {
         placeholder="Ej: Juan Pérez"
       />
 
-      <Text style={styles.label}>Teléfono *</Text>
+      <Text style={typography.label}>Teléfono *</Text>
       <TextInput
         style={styles.input}
         value={phone}
@@ -66,7 +86,7 @@ export default function AccountScreen() {
         keyboardType="phone-pad"
       />
 
-      <Text style={styles.label}>Dirección *</Text>
+      <Text style={typography.label}>Dirección *</Text>
       <TextInput
         style={styles.input}
         value={address}
@@ -78,45 +98,41 @@ export default function AccountScreen() {
         <Text style={styles.saveButtonText}>Actualizar Perfil</Text>
       </TouchableOpacity>
 
-      <View style={{ marginTop: 30 }}>
-        <Button title="Cerrar sesión" onPress={logout} />
-      </View>
+      {/* Zona de peligro */}
+      <Text style={typography.sectionTitle}>Zona de peligro</Text>
+
+      <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount}>
+        <Text style={styles.dangerButtonText}>❌ Eliminar cuenta</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+      </TouchableOpacity>
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  label: {
-    fontWeight: "bold",
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  username: {
-    fontSize: 16,
-    color: "#555",
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-  },
+  container: { padding: 20 },
+  infoText: { fontSize: 16, color: colors.textSecondary },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10 },
   saveButton: {
-    backgroundColor: "black",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 25,
+    backgroundColor: colors.primary,
+    padding: 15, borderRadius: 8,
+    alignItems: "center", marginTop: 25,
   },
-  saveButtonText: {
-    color: "white",
-    fontWeight: "bold",
+  saveButtonText: { color: colors.white, fontWeight: "bold" },
+  dangerButton: {
+    backgroundColor: colors.dangerButton,
+    padding: 15, borderRadius: 8,
+    alignItems: "center", marginTop: 10,
   },
+  dangerButtonText: { color: colors.white, fontWeight: "bold" },
+  logoutButton: {
+    backgroundColor: colors.border,
+    padding: 15, borderRadius: 8,
+    alignItems: "center", marginTop: 15, marginBottom: 40,
+  },
+  logoutButtonText: { color: colors.textPrimary, fontWeight: "bold" },
 });

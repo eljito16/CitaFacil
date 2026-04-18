@@ -1,14 +1,16 @@
-import { View, Text, StyleSheet, TextInput, Button, TouchableOpacity } from "react-native";
-import { useState, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { useAuth } from "../hooks/UseAuth";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../navigation/AuthNavigator";
+import { colors } from "../styles/colors";
+import { typography } from "../styles/typography";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, "Login">;
 
 export default function LoginScreen() {
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
   const navigation = useNavigation<NavigationProp>();
 
   const [username, setUsername] = useState("");
@@ -19,13 +21,12 @@ export default function LoginScreen() {
       alert("Completa todos los campos");
       return;
     }
-
     login(username, password);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
+      <Text style={[typography.screenTitle, styles.centered]}>Iniciar Sesión</Text>
 
       <TextInput
         placeholder="Usuario"
@@ -42,43 +43,38 @@ export default function LoginScreen() {
         style={styles.input}
       />
 
-      <Button title="Ingresar" onPress={handleLogin} />
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Ingresar</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => navigation.navigate("Register")}
         style={styles.registerContainer}
       >
-        <Text style={styles.registerText}>
-          ¿No tienes cuenta? Regístrate
-        </Text>
+        <Text style={styles.registerText}>¿No tienes cuenta? Regístrate</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    marginBottom: 20,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
+  container: { flex: 1, justifyContent: "center", padding: 20 },
+  centered: { textAlign: "center", marginBottom: 20 },
   input: {
     borderWidth: 1,
+    borderColor: colors.border,
     padding: 10,
     marginVertical: 10,
     borderRadius: 6,
   },
-  registerContainer: {
-    marginTop: 20,
+  button: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 8,
     alignItems: "center",
+    marginTop: 10,
   },
-  registerText: {
-    color: "blue",
-  },
+  buttonText: { color: colors.white, fontWeight: "bold" },
+  registerContainer: { marginTop: 20, alignItems: "center" },
+  registerText: { color: "blue" },
 });

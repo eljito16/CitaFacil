@@ -1,183 +1,168 @@
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Button,
-  ActivityIndicator,
+  View, Text, StyleSheet, TextInput, ScrollView,
+  TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
-import { useContext, useState, useEffect } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/UseAuth";
+import { useBusiness } from "../hooks/UseBusiness";
 import { api } from "../services/api";
+import { colors } from "../styles/colors";
+import { typography } from "../styles/typography";
 
-type Service = {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-};
+// ── Categorías disponibles ──
+type CategoryType = "barberia" | "nails" | "maquillaje" | "masajes" | "peluqueria";
 
-type Business = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  address: string;
-  phone: string;
-  schedule: string;
-  image: string;
-};
+const CATEGORIES: { value: CategoryType; label: string }[] = [
+  { value: "barberia",   label: "✂️ Barbería"   },
+  { value: "nails",      label: "💅 Uñas"        },
+  { value: "maquillaje", label: "💄 Maquillaje"  },
+  { value: "masajes",    label: "💆 Masajes"     },
+  { value: "peluqueria", label: "💇 Peluquería"  },
+];
+
+// ── Horas disponibles para horario ──
+const HOURS = [
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
+  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+  "18:00", "19:00", "20:00", "21:00",
+];
+
+// ── Opciones de duración ──
+const DURATION_OPTIONS = [
+  { label: "15 min",    value: 15  },
+  { label: "30 min",    value: 30  },
+  { label: "45 min",    value: 45  },
+  { label: "1 hora",    value: 60  },
+  { label: "1h 30min",  value: 90  },
+  { label: "2 horas",   value: 120 },
+  { label: "2h 30min",  value: 150 },
+  { label: "3 horas",   value: 180 },
+];
 
 export default function BusinessProfileScreen() {
-  const { logout, user } = useContext(AuthContext);
-
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { user, logout } = useAuth();
+  const {
+    business, services, workers,
+    loading, saving,
+    fetchBusiness, addService, deleteService, addWorker, deleteWorker, saveBusiness,
+  } = useBusiness(user?.id);
 
   // Campos del negocio
-  const [name, setName] = useState("");
+  const [name, setName]               = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<"barberia" | "nails">("barberia");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [schedule, setSchedule] = useState("");
-  const [image, setImage] = useState("");
+  const [category, setCategory]       = useState<CategoryType>("barberia");
+  const [address, setAddress]         = useState("");
+  const [phone, setPhone]             = useState("");
+  const [image, setImage]             = useState("");
+
+  // Horario: hora inicio y hora fin
+  const [scheduleStart, setScheduleStart] = useState("09:00");
+  const [scheduleEnd, setScheduleEnd]     = useState("18:00");
 
   // Campos nuevo servicio
-  const [serviceName, setServiceName] = useState("");
-  const [servicePrice, setServicePrice] = useState("");
-  const [serviceDuration, setServiceDuration] = useState("");
-  const [addingService, setAddingService] = useState(false);
+  const [serviceName,     setServiceName]     = useState("");
+  const [servicePrice,    setServicePrice]    = useState("");
+  const [serviceDuration, setServiceDuration] = useState<number>(30);
+  const [addingService,   setAddingService]   = useState(false);
+
+  // Campos nuevo trabajador
+  const [workerName,      setWorkerName]      = useState("");
+  const [workerSpecialty, setWorkerSpecialty] = useState("");
+  const [workerPhone,     setWorkerPhone]     = useState("");
+  const [addingWorker,    setAddingWorker]    = useState(false);
 
   useEffect(() => {
     fetchBusiness();
   }, []);
 
-  const fetchBusiness = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/businesses");
-      const businesses = response.data.businesses;
+  // Sincronizar campos cuando carga el negocio
+  useEffect(() => {
+    if (business) {
+      setName(business.name || "");
+      setDescription(business.description || "");
+      setCategory((business.category as CategoryType) || "barberia");
+      setAddress(business.address || "");
+      setPhone(business.phone || "");
+      setImage(business.image || "");
+       setCategory((business.category.toLowerCase() as CategoryType) || "barberia");
 
-      const myBusiness = businesses.find(
-        (b: any) => b.owner_id === Number(user?.id)
-      );
-
-      if (myBusiness) {
-        setBusiness(myBusiness);
-        setName(myBusiness.name || "");
-        setDescription(myBusiness.description || "");
-        setCategory(myBusiness.category || "barberia");
-        setAddress(myBusiness.address || "");
-        setPhone(myBusiness.phone || "");
-        setSchedule(myBusiness.schedule || "");
-        setImage(myBusiness.image || "");
-
-        fetchServices(myBusiness.id);
+      // Parsear horario guardado "09:00-18:00"
+      if (business.schedule && business.schedule.includes("-")) {
+        const [start, end] = business.schedule.split("-");
+        setScheduleStart(start.trim());
+        setScheduleEnd(end.trim());
       }
-    } catch (error) {
-      console.error("Error cargando negocio:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [business]);
 
-  const fetchServices = async (businessId: string) => {
-    try {
-      const response = await api.get(`/services/${businessId}`);
-      setServices(response.data.services);
-    } catch (error) {
-      console.error("Error cargando servicios:", error);
-    }
-  };
-
-  const handleSaveBusiness = async () => {
-    if (!name || !category) {
-      Alert.alert("Error", "Nombre y categoría son obligatorios");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      if (business) {
-        await api.put(`/businesses/${business.id}`, {
-          name, description, category, address, phone, schedule, image,
-        });
-        Alert.alert("Éxito", "Negocio actualizado correctamente");
-      } else {
-        const response = await api.post("/businesses", {
-          name, description, category, address, phone, schedule, image,
-        });
-        setBusiness(response.data.business);
-        Alert.alert("Éxito", "Negocio creado correctamente");
-      }
-
-      fetchBusiness();
-
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Error al guardar negocio";
-      Alert.alert("Error", message);
-    } finally {
-      setSaving(false);
-    }
+  const handleSaveBusiness = () => {
+    // Guardar horario como "09:00-18:00"
+    const schedule = `${scheduleStart}-${scheduleEnd}`;
+    saveBusiness({ name, description,  category: category.toLowerCase() as CategoryType, address, phone, schedule, image });
   };
 
   const handleAddService = async () => {
-    if (!serviceName || !servicePrice || !serviceDuration) {
-      Alert.alert("Error", "Todos los campos del servicio son obligatorios");
+    if (!serviceName || !servicePrice) {
+      Alert.alert("Error", "Nombre y precio son obligatorios");
       return;
     }
-
-    if (!business) {
-      Alert.alert("Error", "Primero debes crear el negocio");
-      return;
-    }
-
-    try {
-      setAddingService(true);
-      await api.post("/services", {
-        business_id: business.id,
-        name: serviceName,
-        price: Number(servicePrice),
-        duration: Number(serviceDuration),
-      });
-
-      Alert.alert("Éxito", "Servicio agregado correctamente");
-      setServiceName("");
-      setServicePrice("");
-      setServiceDuration("");
-      fetchServices(business.id);
-
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Error al agregar servicio";
-      Alert.alert("Error", message);
-    } finally {
-      setAddingService(false);
-    }
+    if (!business) return;
+    setAddingService(true);
+    await addService(business.id, serviceName, Number(servicePrice), serviceDuration);
+    setServiceName("");
+    setServicePrice("");
+    setServiceDuration(30);
+    setAddingService(false);
   };
 
-  const handleDeleteService = async (serviceId: string) => {
+  const handleAddWorker = async () => {
+    if (!workerName || !business) return;
+    setAddingWorker(true);
+    await addWorker(business.id, workerName, workerSpecialty, workerPhone);
+    setWorkerName("");
+    setWorkerSpecialty("");
+    setWorkerPhone("");
+    setAddingWorker(false);
+  };
+
+  const handleDeleteBusiness = () => {
     Alert.alert(
-      "Eliminar servicio",
-      "¿Estás seguro que deseas eliminar este servicio?",
+      "Eliminar negocio",
+      "¿Estás seguro? Esta acción eliminará el negocio, servicios, trabajadores y citas. No se puede deshacer.",
       [
-        { text: "No", style: "cancel" },
+        { text: "Cancelar", style: "cancel" },
         {
           text: "Sí, eliminar",
           style: "destructive",
           onPress: async () => {
             try {
-              await api.delete(`/services/${serviceId}`);
-              Alert.alert("Éxito", "Servicio eliminado correctamente");
-              if (business) fetchServices(business.id);
+              await api.delete(`/businesses/${business?.id}`);
+              Alert.alert("Éxito", "Negocio eliminado correctamente");
+              fetchBusiness();
             } catch (error: any) {
-              Alert.alert("Error", "No se pudo eliminar el servicio");
+              Alert.alert("Error", error.response?.data?.message || "No se pudo eliminar el negocio");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Eliminar cuenta",
+      "¿Estás seguro? Esta acción eliminará tu cuenta y todos tus datos permanentemente. No se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, eliminar cuenta",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete("/auth/account");
+              logout();
+            } catch (error: any) {
+              Alert.alert("Error", error.response?.data?.message || "No se pudo eliminar la cuenta");
             }
           },
         },
@@ -188,7 +173,7 @@ export default function BusinessProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="black" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
@@ -196,16 +181,15 @@ export default function BusinessProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Mi Negocio</Text>
+      <Text style={typography.screenTitle}>Mi Negocio</Text>
 
-      {/* Info del usuario */}
-      <Text style={styles.label}>Usuario</Text>
+      <Text style={typography.label}>Usuario</Text>
       <Text style={styles.infoText}>{user?.username}</Text>
 
-      {/* Formulario negocio */}
-      <Text style={styles.sectionTitle}>Información del Negocio</Text>
+      {/* ── INFORMACIÓN DEL NEGOCIO ── */}
+      <Text style={typography.sectionTitle}>Información del Negocio</Text>
 
-      <Text style={styles.label}>Nombre *</Text>
+      <Text style={typography.label}>Nombre *</Text>
       <TextInput
         style={styles.input}
         value={name}
@@ -213,7 +197,7 @@ export default function BusinessProfileScreen() {
         placeholder="Ej: Barbería El Maestro"
       />
 
-      <Text style={styles.label}>Descripción</Text>
+      <Text style={typography.label}>Descripción</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
         value={description}
@@ -223,61 +207,73 @@ export default function BusinessProfileScreen() {
         numberOfLines={3}
       />
 
-      <Text style={styles.label}>Categoría *</Text>
+      {/* ── CATEGORÍAS ── */}
+      <Text style={typography.label}>Categoría *</Text>
       <View style={styles.categoryContainer}>
-        <TouchableOpacity
-          style={[
-            styles.categoryButton,
-            category === "barberia" && styles.categorySelected,
-          ]}
-          onPress={() => setCategory("barberia")}
-        >
-          <Text>✂️ Barbería</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.categoryButton,
-            category === "nails" && styles.categorySelected,
-          ]}
-          onPress={() => setCategory("nails")}
-        >
-          <Text>💅 Uñas</Text>
-        </TouchableOpacity>
+        {CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat.value}
+            style={[styles.categoryButton, category === cat.value && styles.categorySelected]}
+            onPress={() => setCategory(cat.value)}
+          >
+            <Text style={styles.categoryText}>{cat.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <Text style={styles.label}>Dirección</Text>
-      <TextInput
-        style={styles.input}
-        value={address}
-        onChangeText={setAddress}
-        placeholder="Ej: Calle 123 #45-67"
-      />
+      <Text style={typography.label}>Dirección</Text>
+      <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Ej: Calle 123 #45-67" />
 
-      <Text style={styles.label}>Teléfono</Text>
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        placeholder="Ej: 3001234567"
-        keyboardType="phone-pad"
-      />
+      <Text style={typography.label}>Teléfono</Text>
+      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Ej: 3001234567" keyboardType="phone-pad" />
 
-      <Text style={styles.label}>Horario</Text>
-      <TextInput
-        style={styles.input}
-        value={schedule}
-        onChangeText={setSchedule}
-        placeholder="Ej: Lunes a Sábado 9:00 AM - 7:00 PM"
-      />
+      {/* ── HORARIO ── */}
+      <Text style={typography.label}>Horario de atención</Text>
+      <View style={styles.scheduleContainer}>
+        <View style={styles.scheduleColumn}>
+          <Text style={styles.scheduleLabel}>Apertura</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.hoursRow}>
+              {HOURS.map((h) => (
+                <TouchableOpacity
+                  key={h}
+                  style={[styles.hourChip, scheduleStart === h && styles.hourChipSelected]}
+                  onPress={() => setScheduleStart(h)}
+                >
+                  <Text style={scheduleStart === h ? styles.hourChipTextSelected : styles.hourChipText}>
+                    {h}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
 
-      <Text style={styles.label}>URL de imagen</Text>
-      <TextInput
-        style={styles.input}
-        value={image}
-        onChangeText={setImage}
-        placeholder="https://..."
-      />
+        <View style={styles.scheduleColumn}>
+          <Text style={styles.scheduleLabel}>Cierre</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.hoursRow}>
+              {HOURS.map((h) => (
+                <TouchableOpacity
+                  key={h}
+                  style={[styles.hourChip, scheduleEnd === h && styles.hourChipSelected]}
+                  onPress={() => setScheduleEnd(h)}
+                >
+                  <Text style={scheduleEnd === h ? styles.hourChipTextSelected : styles.hourChipText}>
+                    {h}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+      <Text style={styles.schedulePreview}>
+        🕒 Horario seleccionado: {scheduleStart} - {scheduleEnd}
+      </Text>
+
+      <Text style={typography.label}>URL de imagen</Text>
+      <TextInput style={styles.input} value={image} onChangeText={setImage} placeholder="https://..." />
 
       <TouchableOpacity
         style={[styles.saveButton, saving && { opacity: 0.6 }]}
@@ -289,25 +285,29 @@ export default function BusinessProfileScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Servicios */}
       {business && (
         <>
-          <Text style={styles.sectionTitle}>Mis Servicios</Text>
+          {/* ── SERVICIOS ── */}
+          <Text style={typography.sectionTitle}>Mis Servicios</Text>
 
           {services.length === 0 ? (
             <Text style={styles.emptyText}>No tienes servicios agregados</Text>
           ) : (
             services.map((service) => (
-              <View key={service.id} style={styles.serviceCard}>
-                <View style={styles.serviceInfo}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
-                  <Text style={styles.serviceDetails}>
-                    ${Number(service.price).toLocaleString()} · {service.duration} min
+              <View key={service.id} style={styles.card}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardName}>{service.name}</Text>
+                  <Text style={styles.cardDetails}>
+                    ${Number(service.price).toLocaleString()} · {
+                      service.duration >= 60
+                        ? `${Math.floor(service.duration / 60)}h${service.duration % 60 > 0 ? ` ${service.duration % 60}min` : ""}`
+                        : `${service.duration} min`
+                    }
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleDeleteService(service.id)}
+                  onPress={() => deleteService(service.id, business.id)}
                 >
                   <Text style={styles.deleteText}>🗑️</Text>
                 </TouchableOpacity>
@@ -315,34 +315,29 @@ export default function BusinessProfileScreen() {
             ))
           )}
 
-          {/* Agregar servicio */}
-          <Text style={styles.sectionTitle}>Agregar Servicio</Text>
+          {/* ── AGREGAR SERVICIO ── */}
+          <Text style={typography.sectionTitle}>Agregar Servicio</Text>
 
-          <Text style={styles.label}>Nombre del servicio</Text>
-          <TextInput
-            style={styles.input}
-            value={serviceName}
-            onChangeText={setServiceName}
-            placeholder="Ej: Corte clásico"
-          />
+          <Text style={typography.label}>Nombre del servicio</Text>
+          <TextInput style={styles.input} value={serviceName} onChangeText={setServiceName} placeholder="Ej: Corte clásico" />
 
-          <Text style={styles.label}>Precio</Text>
-          <TextInput
-            style={styles.input}
-            value={servicePrice}
-            onChangeText={setServicePrice}
-            placeholder="Ej: 25000"
-            keyboardType="numeric"
-          />
+          <Text style={typography.label}>Precio</Text>
+          <TextInput style={styles.input} value={servicePrice} onChangeText={setServicePrice} placeholder="Ej: 25000" keyboardType="numeric" />
 
-          <Text style={styles.label}>Duración (minutos)</Text>
-          <TextInput
-            style={styles.input}
-            value={serviceDuration}
-            onChangeText={setServiceDuration}
-            placeholder="Ej: 30"
-            keyboardType="numeric"
-          />
+          <Text style={typography.label}>Duración</Text>
+          <View style={styles.durationContainer}>
+            {DURATION_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.durationChip, serviceDuration === opt.value && styles.durationChipSelected]}
+                onPress={() => setServiceDuration(opt.value)}
+              >
+                <Text style={serviceDuration === opt.value ? styles.durationChipTextSelected : styles.durationChipText}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <TouchableOpacity
             style={[styles.addButton, addingService && { opacity: 0.6 }]}
@@ -353,12 +348,98 @@ export default function BusinessProfileScreen() {
               {addingService ? "Agregando..." : "+ Agregar Servicio"}
             </Text>
           </TouchableOpacity>
+
+          {/* ── TRABAJADORES ── */}
+          <Text style={typography.sectionTitle}>Mis Trabajadores</Text>
+
+          {workers.length === 0 ? (
+            <Text style={styles.emptyText}>No tienes trabajadores agregados</Text>
+          ) : (
+            workers.map((worker) => (
+              <View key={worker.id} style={styles.card}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardName}>✂️ {worker.name}</Text>
+                  {worker.specialty ? (
+                    <Text style={styles.cardDetails}>🛠 {worker.specialty}</Text>
+                  ) : null}
+                  {worker.phone ? (
+                    <Text style={styles.cardDetails}>📞 {worker.phone}</Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => deleteWorker(worker.id, business.id)}
+                >
+                  <Text style={styles.deleteText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+
+          {/* ── AGREGAR TRABAJADOR ── */}
+          <Text style={typography.sectionTitle}>Agregar Trabajador</Text>
+
+          <Text style={typography.label}>Nombre *</Text>
+          <TextInput style={styles.input} value={workerName} onChangeText={setWorkerName} placeholder="Ej: Carlos Gómez" />
+
+          {/* Especialidad = selección de servicios existentes */}
+          <Text style={typography.label}>Especialidad (servicios que realiza)</Text>
+          {services.length === 0 ? (
+            <Text style={styles.emptyText}>Agrega servicios primero para asignar especialidad</Text>
+          ) : (
+            <View style={styles.specialtyContainer}>
+              {services.map((service) => (
+                <TouchableOpacity
+                  key={service.id}
+                  style={[
+                    styles.specialtyChip,
+                    workerSpecialty === service.name && styles.specialtyChipSelected,
+                  ]}
+                  onPress={() =>
+                    setWorkerSpecialty(
+                      workerSpecialty === service.name ? "" : service.name
+                    )
+                  }
+                >
+                  <Text style={workerSpecialty === service.name ? styles.specialtyChipTextSelected : styles.specialtyChipText}>
+                    {service.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <Text style={typography.label}>Teléfono</Text>
+          <TextInput style={styles.input} value={workerPhone} onChangeText={setWorkerPhone} placeholder="Ej: 3001234567" keyboardType="phone-pad" />
+
+          <TouchableOpacity
+            style={[styles.addButton, addingWorker && { opacity: 0.6 }]}
+            onPress={handleAddWorker}
+            disabled={addingWorker}
+          >
+            <Text style={styles.addButtonText}>
+              {addingWorker ? "Agregando..." : "+ Agregar Trabajador"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* ── ELIMINAR NEGOCIO ── */}
+          <Text style={typography.sectionTitle}>Zona de peligro</Text>
+
+          <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteBusiness}>
+            <Text style={styles.dangerButtonText}>🗑️ Eliminar negocio</Text>
+          </TouchableOpacity>
         </>
       )}
 
-      <View style={{ marginTop: 30, marginBottom: 20 }}>
-        <Button title="Cerrar sesión" onPress={logout} />
-      </View>
+      {/* ── ELIMINAR CUENTA ── */}
+      <TouchableOpacity style={[styles.dangerButton, { marginTop: 15 }]} onPress={handleDeleteAccount}>
+        <Text style={styles.dangerButtonText}>❌ Eliminar cuenta</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+      </TouchableOpacity>
+
     </ScrollView>
   );
 }
@@ -366,25 +447,58 @@ export default function BusinessProfileScreen() {
 const styles = StyleSheet.create({
   container: { padding: 20 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, color: "#555" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", marginTop: 25, marginBottom: 10 },
-  label: { fontWeight: "bold", marginTop: 12, marginBottom: 5 },
-  infoText: { fontSize: 16, color: "#555" },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10 },
+  loadingText: { marginTop: 10, color: colors.textSecondary },
+  infoText: { fontSize: 16, color: colors.textSecondary },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10 },
   textArea: { height: 80, textAlignVertical: "top" },
-  categoryContainer: { flexDirection: "row", justifyContent: "space-around", marginTop: 5 },
-  categoryButton: { padding: 12, borderWidth: 1, borderRadius: 8, width: 130, alignItems: "center" },
-  categorySelected: { backgroundColor: "#ddd", borderColor: "black" },
-  saveButton: { backgroundColor: "black", padding: 15, borderRadius: 8, alignItems: "center", marginTop: 20 },
-  saveButtonText: { color: "white", fontWeight: "bold" },
-  emptyText: { color: "#888", fontStyle: "italic", marginBottom: 10 },
-  serviceCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderWidth: 1, borderRadius: 8, marginBottom: 8 },
-  serviceInfo: { flex: 1 },
-  serviceName: { fontSize: 16, fontWeight: "bold" },
-  serviceDetails: { fontSize: 13, color: "#555", marginTop: 2 },
+
+  // Categorías
+  categoryContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 5 },
+  categoryButton: { padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8, alignItems: "center" },
+  categorySelected: { backgroundColor: colors.selected, borderColor: colors.primary },
+  categoryText: { fontSize: 13 },
+
+  // Horario
+  scheduleContainer: { gap: 12, marginTop: 5 },
+  scheduleColumn: { gap: 6 },
+  scheduleLabel: { fontWeight: "bold", color: colors.textSecondary, fontSize: 13 },
+  hoursRow: { flexDirection: "row", gap: 6 },
+  hourChip: { paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
+  hourChipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  hourChipText: { fontSize: 13, color: colors.textPrimary },
+  hourChipTextSelected: { fontSize: 13, color: colors.white, fontWeight: "bold" },
+  schedulePreview: { marginTop: 10, fontWeight: "bold", color: colors.textSecondary },
+
+  // Duración
+  durationContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 5 },
+  durationChip: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
+  durationChipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  durationChipText: { fontSize: 13, color: colors.textPrimary },
+  durationChipTextSelected: { fontSize: 13, color: colors.white, fontWeight: "bold" },
+
+  // Especialidad trabajador
+  specialtyContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 5 },
+  specialtyChip: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
+  specialtyChipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  specialtyChipText: { fontSize: 13, color: colors.textPrimary },
+  specialtyChipTextSelected: { fontSize: 13, color: colors.white, fontWeight: "bold" },
+
+  // Cards
+  emptyText: { color: colors.textMuted, fontStyle: "italic", marginBottom: 10 },
+  card: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8, marginBottom: 8 },
+  cardInfo: { flex: 1 },
+  cardName: { fontSize: 16, fontWeight: "bold" },
+  cardDetails: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   deleteButton: { padding: 8 },
   deleteText: { fontSize: 18 },
-  addButton: { backgroundColor: "#333", padding: 15, borderRadius: 8, alignItems: "center", marginTop: 15 },
-  addButtonText: { color: "white", fontWeight: "bold" },
+
+  // Botones
+  saveButton: { backgroundColor: colors.primary, padding: 15, borderRadius: 8, alignItems: "center", marginTop: 20 },
+  saveButtonText: { color: colors.white, fontWeight: "bold" },
+  addButton: { backgroundColor: colors.primaryLight, padding: 15, borderRadius: 8, alignItems: "center", marginTop: 15 },
+  addButtonText: { color: colors.white, fontWeight: "bold" },
+  dangerButton: { backgroundColor: colors.dangerButton, padding: 15, borderRadius: 8, alignItems: "center", marginTop: 10 },
+  dangerButtonText: { color: colors.white, fontWeight: "bold" },
+  logoutButton: { backgroundColor: colors.border, padding: 15, borderRadius: 8, alignItems: "center", marginTop: 15, marginBottom: 40 },
+  logoutButtonText: { color: colors.textPrimary, fontWeight: "bold" },
 });
