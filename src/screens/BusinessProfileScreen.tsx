@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, TextInput, ScrollView,
-  TouchableOpacity, Alert, ActivityIndicator,
+  TouchableOpacity, Alert, ActivityIndicator, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/UseAuth";
@@ -8,6 +8,7 @@ import { useBusiness } from "../hooks/UseBusiness";
 import { api } from "../services/api";
 import { colors } from "../styles/colors";
 import { typography } from "../styles/typography";
+import * as ImagePicker from "expo-image-picker";
 
 // ── Categorías disponibles ──
 type CategoryType = "barberia" | "nails" | "maquillaje" | "masajes" | "peluqueria";
@@ -169,6 +170,28 @@ export default function BusinessProfileScreen() {
       ]
     );
   };
+  const handlePickImage = async () => {
+  // Solicitar permisos
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  
+  if (status !== "granted") {
+    Alert.alert("Permiso denegado", "Necesitamos acceso a tu galería para seleccionar una imagen");
+    return;
+  }
+
+  // Abrir galería
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [4, 3],
+    quality: 0.7,
+    base64: false,
+  });
+
+  if (!result.canceled) {
+    setImage(result.assets[0].uri);
+  }
+};
 
   if (loading) {
     return (
@@ -272,8 +295,24 @@ export default function BusinessProfileScreen() {
         🕒 Horario seleccionado: {scheduleStart} - {scheduleEnd}
       </Text>
 
-      <Text style={typography.label}>URL de imagen</Text>
-      <TextInput style={styles.input} value={image} onChangeText={setImage} placeholder="https://..." />
+      <Text style={typography.label}>Imagen del negocio</Text>
+{image ? (
+  <Image
+    source={{ uri: image }}
+    style={styles.imagePreview}
+    resizeMode="cover"
+  />
+) : null}
+      <View style={styles.imageButtons}>
+        <TouchableOpacity style={styles.imageButton} onPress={handlePickImage}>
+          <Text style={styles.imageButtonText}>📷 Seleccionar de galería</Text>
+        </TouchableOpacity>
+        {image ? (
+          <TouchableOpacity style={styles.imageButtonDanger} onPress={() => setImage("")}>
+            <Text style={styles.imageButtonText}>🗑️ Quitar imagen</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       <TouchableOpacity
         style={[styles.saveButton, saving && { opacity: 0.6 }]}
@@ -501,4 +540,11 @@ const styles = StyleSheet.create({
   dangerButtonText: { color: colors.white, fontWeight: "bold" },
   logoutButton: { backgroundColor: colors.border, padding: 15, borderRadius: 8, alignItems: "center", marginTop: 15, marginBottom: 40 },
   logoutButtonText: { color: colors.textPrimary, fontWeight: "bold" },
+
+  // Imagen
+  imagePreview: { width: "100%",  height: 180,  borderRadius: 8,  marginTop: 8,  marginBottom: 8,},
+imageButtons: {  flexDirection: "row", gap: 8, marginTop: 8,},
+imageButton: { flex: 1, backgroundColor: colors.primaryLight, padding: 12, borderRadius: 8, alignItems: "center",},
+imageButtonDanger: { flex: 1, backgroundColor: colors.dangerButton, padding: 12, borderRadius: 8, alignItems: "center",},
+imageButtonText: { color: colors.white, fontWeight: "bold", fontSize: 13,},
 });
