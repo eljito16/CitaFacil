@@ -2,7 +2,7 @@
   "expo": {
     "name": "CitaFacil",
     "slug": "citaFacil",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -15,20 +15,25 @@
       "supportsTablet": true
     },
     "android": {
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/logo.png",
-    "backgroundColor": "#ffffff"
-  },
-  "package": "com.citafacil.app"
-  }
-    },
-    "web": {
-      "favicon": "./assets/logo.png"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.citafacil.app",
+      "versionCode": 2 
     },
     "extra": {
       "eas": {
         "projectId": "aee73542-423f-4446-bd01-cafce6157ef4"
       }
     }
+  },
+  "web": {
+    "favicon": "./assets/logo.png"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "aee73542-423f-4446-bd01-cafce6157ef4"
+    }
   }
-
+}
