@@ -12,6 +12,9 @@
       "backgroundColor": "#ffffff",
       "jsEngine": "jsc"
     },
+    "scripts": {
+  "postinstall": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc || true"
+    },
     "ios": {
       "supportsTablet": true
     },
