@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://citafacil-backend.onrender.com/api";
+const API_URL = "https://citafacil-backend.onrender.com/api";  //https://citafacil-backend.onrender.com/api   // http://192.168.1.8:3000/api
 
 export const api = axios.create({
   baseURL: API_URL,

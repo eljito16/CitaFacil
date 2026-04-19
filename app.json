@@ -15,13 +15,20 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
-        "backgroundColor": "#ffffff"
-      }
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/logo.png",
+    "backgroundColor": "#ffffff"
+  },
+  "package": "com.citafacil.app"
+  }
     },
     "web": {
       "favicon": "./assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "aee73542-423f-4446-bd01-cafce6157ef4"
+      }
     }
   }
-}
+

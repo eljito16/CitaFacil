@@ -1,6 +1,7 @@
 import { createContext, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, setAuthToken, removeAuthToken } from "../services/api";
+import { Alert } from "react-native";
 
 type Role = "cliente" | "negocio";
 
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       const message = error.response?.data?.message || "Error al iniciar sesión";
-      alert(message);
+      Alert.alert(message);
     }
   };
 
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       const message = error.response?.data?.message || "Error al registrarse";
-      alert(message);
+      Alert.alert(message);
     }
   };
 
