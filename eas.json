@@ -9,15 +9,15 @@
       "distribution": "internal"
     },
     "preview": {
-  "distribution": "internal",
-  "android": {
-    "buildType": "apk"
-  },
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-},
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      },
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
     "production": {
       "autoIncrement": true
     }
