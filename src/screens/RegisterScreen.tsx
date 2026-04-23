@@ -84,3 +84,7 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: colors.white, fontWeight: "bold" },
 });
+
+function alert(arg0: string) {
+  throw new Error("Function not implemented.");
+}

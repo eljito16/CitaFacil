@@ -44,10 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
-
     } catch (error: any) {
-      const message = error.response?.data?.message || "Error al iniciar sesión";
-      Alert.alert(message);
+      console.log("LOGIN ERROR:", error?.response?.data || error?.message || error);
+
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Error al iniciar sesión";
+
+      Alert.alert("Login", String(message));
     }
   };
 
@@ -67,10 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
-
     } catch (error: any) {
-      const message = error.response?.data?.message || "Error al registrarse";
-      Alert.alert(message);
+      console.log("REGISTER ERROR:", error?.response?.data || error?.message || error);
+
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Error al registrarse";
+
+      Alert.alert("Registro", String(message));
     }
   };
 
