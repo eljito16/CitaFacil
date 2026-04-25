@@ -2,19 +2,16 @@
   "expo": {
     "name": "CitaFacil",
     "slug": "citaFacil",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
-
-    "jsEngine": "jsc", 
-
+    "jsEngine": "jsc",
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true
     },
@@ -24,12 +21,15 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.citafacil.app",
-      "versionCode": 3
+      "versionCode": 4
     },
     "extra": {
       "eas": {
         "projectId": "aee73542-423f-4446-bd01-cafce6157ef4"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
